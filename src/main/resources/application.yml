@@ -1,0 +1,148 @@
+# transfer-service/src/main/resources/application.yml
+server:
+  port: 8081
+
+spring:
+  application:
+    name: transfer-service
+
+  profiles:
+    active: dev
+
+  datasource:
+    url: jdbc:h2:mem:transferdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.fintech.transfer: DEBUG
+    io.github.resilience4j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+
+# External service configuration
+services:
+  ledger:
+    base-url: http://localhost:8081
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      ledgerService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+        record-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+          - java.net.ConnectException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+  retry:
+    instances:
+      ledgerService:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.net.ConnectException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/transfer_db
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:transfer_user}
+    password: ${DB_PASSWORD:transfer_pass}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    com.fintech.transfer: INFO
+    io.github.resilience4j: INFO
+
+services:
+  ledger:
+    base-url: ${LEDGER_SERVICE_URL:http://ledger-service:8081}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ledgerService:
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 60
+
+---
+# Test profile
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+services:
+  ledger:
+    base-url: http://localhost:8081
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ledgerService:
+        sliding-window-size: 5
+        minimum-number-of-calls: 2
