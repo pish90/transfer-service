@@ -126,7 +126,6 @@ public class LedgerServiceClient {
         }
 
         // Simulate ledger operation
-        // In real implementation, this would update the ledger system
         try {
             // Simulate potential failure points
             if (Math.random() < 0.1) { // 10% chance of failure for testing
