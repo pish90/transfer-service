@@ -1,7 +1,8 @@
 package com.fintech.transfer_service.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fintech.transfer_service.data.TransferStatus;
+import com.fintech.transfer_service.util.FlexibleLocalDateTimeDeserializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,8 +19,8 @@ import java.time.LocalDateTime;
 @Schema(description = "Transfer response data")
 public class TransferDto {
 
-    @Schema(description = "Unique transfer identifier", example = "txn-abc123")
-    private String id;
+    @Schema(description = "Unique transfer identifier", example = "123456")
+    private Long id;
 
     @Schema(description = "Source account identifier", example = "123456789")
     private Long fromAccountId;
@@ -34,10 +35,10 @@ public class TransferDto {
     private TransferStatus status;
 
     @Schema(description = "Transfer creation timestamp")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime createdAt;
 
     @Schema(description = "Transfer completion timestamp")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
     private LocalDateTime completedAt;
 }

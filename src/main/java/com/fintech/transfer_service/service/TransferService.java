@@ -19,8 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
@@ -58,14 +59,15 @@ public class TransferService {
         validateTransferRequest(fromAccountId, toAccountId, amount, idempotencyKey);
 
         // Create transfer record
-        String transferId = UUID.randomUUID().toString();
+        Long transferId = generateTransferId();
         Transfer transfer = new Transfer(transferId, idempotencyKey, fromAccountId, toAccountId, amount);
+        transfer.setStatus(TransferStatus.PENDING);
         transfer = transferRepository.save(transfer);
 
         try {
             // Call ledger service
             LedgerTransferResponse ledgerResponse = ledgerServiceClient.applyTransfer(
-                    transferId, fromAccountId, toAccountId, amount);
+                    transferId, fromAccountId, toAccountId, amount, idempotencyKey);
 
             // Update transfer status based on response
             if (ledgerResponse.isSuccess()) {
@@ -118,8 +120,8 @@ public class TransferService {
      * Get transfer by ID
      */
     @Transactional(readOnly = true)
-    public Optional<Transfer> getTransfer(String transferId) {
-        return transferRepository.findById(Long.valueOf(transferId));
+    public Optional<Transfer> getTransfer(Long transferId) {
+        return transferRepository.findById(transferId);
     }
 
     private void validateTransferRequest(Long fromAccountId, Long toAccountId,
@@ -130,6 +132,9 @@ public class TransferService {
         if (toAccountId <= 0) {
             throw new IllegalArgumentException("To account ID is required");
         }
+        if (Objects.equals(fromAccountId, toAccountId)) {
+            throw new IllegalArgumentException("Cannot transfer to the same account");
+        }
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Transfer amount must be positive");
         }
@@ -139,6 +144,11 @@ public class TransferService {
     }
 
     public TransferDto createTransfer(CreateTransferRequestDto validRequest, String idempotencyKey) throws JsonProcessingException {
+        // Validate idempotency key
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new IllegalArgumentException("Idempotency key must be provided");
+        }
+
         // Check for existing idempotent request
         Optional<IdempotencyRecord> existingRecord = idempotencyService.findExistingRecord(idempotencyKey);
 
@@ -150,6 +160,7 @@ public class TransferService {
 
         // Create new transfer
         Transfer transfer = new Transfer();
+        transfer.setIdempotencyKey(idempotencyKey);
         transfer.setId(generateTransferId());
         transfer.setFromAccountId(validRequest.getFromAccountId());
         transfer.setToAccountId(validRequest.getToAccountId());
@@ -181,8 +192,9 @@ public class TransferService {
         return responseDto;
     }
 
-    private String generateTransferId() {
-        return "txn-" + UUID.randomUUID().toString().substring(0, 8);
+    private long generateTransferId() {
+        Random random = new Random();
+        return random.nextLong();
     }
 
     private TransferDto mapToDto(Transfer transfer) {

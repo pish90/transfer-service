@@ -21,7 +21,7 @@ public class IdempotencyRecord {
     private String idempotencyKey;
 
     @Column(name = "transfer_id", nullable = false)
-    private String transferId;
+    private Long transferId;
 
     @Column(name = "response_body", columnDefinition = "TEXT")
     private String responseBody;
@@ -35,7 +35,7 @@ public class IdempotencyRecord {
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    public IdempotencyRecord(String idempotencyKey, String transferId,
+    public IdempotencyRecord(String idempotencyKey, Long transferId,
                              String responseBody, Integer httpStatus) {
         this.idempotencyKey = idempotencyKey;
         this.transferId = transferId;

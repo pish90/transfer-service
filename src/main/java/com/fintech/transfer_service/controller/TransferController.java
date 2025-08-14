@@ -87,7 +87,7 @@ public class TransferController {
     @Operation(summary = "Get transfer status", description = "Retrieve transfer details by ID")
     @ApiResponse(responseCode = "200", description = "Transfer found")
     @ApiResponse(responseCode = "404", description = "Transfer not found")
-    public ResponseEntity<TransferResponse> getTransfer(@PathVariable String id) {
+    public ResponseEntity<TransferResponse> getTransfer(@PathVariable Long id) {
         Optional<Transfer> transfer = transferService.getTransfer(id);
 
         if (transfer.isPresent()) {
@@ -117,7 +117,8 @@ public class TransferController {
                     .map(dto -> new CreateTransferRequestDto(
                             dto.getFromAccountId(),
                             dto.getToAccountId(),
-                            dto.getAmount()
+                            dto.getAmount(),
+                            dto.getIdempotencyKey()
                     ))
                     .collect(Collectors.toList());
 

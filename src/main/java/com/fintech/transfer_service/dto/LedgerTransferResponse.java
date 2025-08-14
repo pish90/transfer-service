@@ -17,4 +17,10 @@ public class LedgerTransferResponse {
     private BigDecimal fromBalanceAfter;
     private BigDecimal toBalanceAfter;
     private LocalDateTime timestamp;
+
+    public LedgerTransferResponse(boolean success, String message) {
+        this.success = success;
+        this.message = message;
+        this.timestamp = LocalDateTime.now();
+    }
 }

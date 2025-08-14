@@ -10,12 +10,12 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 public class LedgerTransferRequest {
-    private String transferId;
+    private Long transferId;
     private Long fromAccountId;
     private Long toAccountId;
     private BigDecimal amount;
 
-    public LedgerTransferRequest(String transferId, Long fromAccountId, Long toAccountId, BigDecimal amount) {
+    public LedgerTransferRequest(Long transferId, Long fromAccountId, Long toAccountId, BigDecimal amount) {
         this.transferId = transferId;
         this.fromAccountId = fromAccountId;
         this.toAccountId = toAccountId;

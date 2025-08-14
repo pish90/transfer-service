@@ -26,10 +26,11 @@ public class LedgerServiceClient {
     private static final String LEDGER_CIRCUIT_BREAKER = "ledgerService";
 
     private final RestTemplate restTemplate;
+
     private final String ledgerServiceBaseUrl;
 
     public LedgerServiceClient(RestTemplate restTemplate,
-                               @Value( "${services.ledger.base-url:http://localhost:8081}") String ledgerServiceBaseUrl) {
+                               @Value("${services.ledger.base-url:http://localhost:8082}") String ledgerServiceBaseUrl) {
         this.restTemplate = restTemplate;
         this.ledgerServiceBaseUrl = ledgerServiceBaseUrl;
     }
@@ -63,19 +64,19 @@ public class LedgerServiceClient {
 
     @CircuitBreaker(name = LEDGER_CIRCUIT_BREAKER, fallbackMethod = "fallbackTransfer")
     @Retry(name = LEDGER_CIRCUIT_BREAKER)
-    public LedgerTransferResponse applyTransfer(String transferId, Long fromAccountId,
-                                                Long toAccountId, BigDecimal amount) {
+    public LedgerTransferResponse applyTransfer(Long transferId, Long fromAccountId,
+                                                Long toAccountId, BigDecimal amount, String idempotencyKey) {
 
         String correlationId = MDC.get("correlationId");
+        MDC.put("idempotencyKey", idempotencyKey);
         log.info("Calling ledger service for transfer {} [correlationId={}]", transferId, correlationId);
 
         LedgerTransferRequest request = new LedgerTransferRequest(transferId, fromAccountId, toAccountId, amount);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
-        if (correlationId != null) {
-            headers.set("X-Correlation-ID", correlationId);
-        }
+        headers.set("X-Correlation-ID", correlationId);
+        headers.set("X-Idempotency-Key", idempotencyKey);
 
         HttpEntity<LedgerTransferRequest> entity = new HttpEntity<>(request, headers);
         String url = ledgerServiceBaseUrl + "/ledger/transfer";
@@ -91,8 +92,8 @@ public class LedgerServiceClient {
             return result;
 
         } catch (Exception e) {
-            log.error("Error calling ledger service for transfer {} [correlationId={}]: {}",
-                    transferId, correlationId, e.getMessage(), e);
+            log.error("Error calling ledger service for transfer {} [correlationId={}]. URL: {}. Full error: ",
+                    transferId, correlationId, url, e);
             throw e;
         }
     }
@@ -100,12 +101,14 @@ public class LedgerServiceClient {
     /**
      * Fallback method when circuit breaker is open or retries are exhausted
      */
-    public LedgerTransferResponse fallbackTransfer(String transferId, String fromAccountId,
-                                                   String toAccountId, BigDecimal amount, Exception ex) {
+    public LedgerTransferResponse fallbackTransfer(String transferId, Long fromAccountId,
+                                                   Long toAccountId, BigDecimal amount, String idempotencyKey, Throwable ex) {
 
         String correlationId = MDC.get("correlationId");
-        log.error("Circuit breaker activated for transfer {} [correlationId={}]. Reason: {}",
-                transferId, correlationId, ex.getMessage());
+        MDC.put("idempotencyKey", idempotencyKey);
+
+        log.error("Fallback triggered for transfer {} [idempotencyKey={}, correlationId={}]. Reason: {}",
+                transferId, idempotencyKey, correlationId, ex.getMessage());
 
         LedgerTransferResponse response = new LedgerTransferResponse();
         response.setTransferId(transferId);

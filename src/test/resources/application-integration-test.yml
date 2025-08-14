@@ -10,7 +10,7 @@ spring:
 
 ledger:
   service:
-    url: http://localhost:8081
+    url: ${ledger.service.url:http://localhost:8081}
 
 resilience4j:
   circuitbreaker:

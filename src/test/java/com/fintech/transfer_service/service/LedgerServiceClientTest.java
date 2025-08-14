@@ -44,10 +44,10 @@ class LedgerServiceClientTest {
     private CircuitBreaker circuitBreaker;
 
     private LedgerServiceClient ledgerServiceClient;
-    private final String ledgerServiceUrl = "http://localhost:8081";
 
     @BeforeEach
     void setUp() {
+        String ledgerServiceUrl = "http://localhost:8081";
         ledgerServiceClient = new LedgerServiceClient(restTemplate, ledgerServiceUrl);
         MDC.put("correlationId", "test-correlation-id");
     }

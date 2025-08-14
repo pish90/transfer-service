@@ -48,7 +48,7 @@ logging:
 # External service configuration
 services:
   ledger:
-    base-url: http://localhost:8081
+    base-url: http://localhost:8082
 
 # Resilience4j configuration
 resilience4j:
@@ -138,7 +138,7 @@ spring:
 
 services:
   ledger:
-    base-url: http://localhost:8081
+    base-url: http://localhost:8082
 
 resilience4j:
   circuitbreaker:

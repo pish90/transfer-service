@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 public class Transfer {
 
     @Id
-    private String id;
+    private Long id;
 
     @NotNull
     @Column(name = "idempotency_key", unique = true)
@@ -55,7 +55,7 @@ public class Transfer {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    public Transfer(String id, String idempotencyKey, Long fromAccountId,
+    public Transfer(Long id, String idempotencyKey, Long fromAccountId,
                     Long toAccountId, BigDecimal amount) {
         this.id = id;
         this.idempotencyKey = idempotencyKey;
@@ -67,7 +67,14 @@ public class Transfer {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Transfer(String id, String idempotencyKey, Long fromAccountId, Long toAccountId, BigDecimal amount, TransferStatus status) {
+    public Transfer(String idempotencyKey, Long fromAccountId, Long toAccountId, BigDecimal amount) {
+        this.idempotencyKey = idempotencyKey;
+        this.fromAccountId = fromAccountId;
+        this.toAccountId = toAccountId;
+        this.amount = amount;
+    }
+
+    public Transfer(Long id, String idempotencyKey, Long fromAccountId, Long toAccountId, BigDecimal amount, TransferStatus status) {
         this.id = id;
         this.idempotencyKey = idempotencyKey;
         this.fromAccountId = fromAccountId;
